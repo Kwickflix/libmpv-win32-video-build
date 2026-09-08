@@ -9,6 +9,11 @@ host=mingw")
 
 ExternalProject_Add(mujs
     GIT_REPOSITORY https://github.com/ccxvii/mujs.git
+    # Kwick (W-083): PIN to 2023-08-10. Patched package with no GIT_TAG at all,
+    # so it tracked the default branch. mpv is built -Djavascript=enabled, so
+    # MuJS is statically linked into the DLL we ship (ISC licence - see
+    # THIRD_PARTY_LICENSES.md section 1a).
+    GIT_TAG 9f5bc0ff812c2ad550396d3506e5f1328bbcce70
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/mujs-*.patch

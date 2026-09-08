@@ -2,8 +2,11 @@ ExternalProject_Add(spirv-cross
     GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
-    GIT_REMOTE_NAME origin
-    GIT_TAG main
+    # Kwick (W-083): PIN to 2023-09-19, contemporaneous with the pinned mpv.
+    # This package is patched, and a patched package floating on main is the
+    # same trap fontconfig and vulkan fell into. GIT_REMOTE_NAME removed so
+    # force_rebuild_git does not reset the pin to @{u}.
+    GIT_TAG 43a59b7cff977476167543f5e7e0d51c8d68d745
     UPDATE_COMMAND ""
     PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross-*.patch
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>

@@ -4,8 +4,11 @@ ExternalProject_Add(mbedtls
     GIT_CLONE_FLAGS "--filter=tree:0"
     PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls-*.patch
     UPDATE_COMMAND ""
-    GIT_REMOTE_NAME origin
-    GIT_TAG master
+    # Kwick (W-083): PIN to 030f11b0, committed 2023-09-24T07:48:47Z - three
+    # minutes before media-kit published the release this DLL comes from.
+    # Patched package, was floating on master. GIT_REMOTE_NAME removed so
+    # force_rebuild_git does not reset the pin to @{u}.
+    GIT_TAG 030f11b0b18481b34d95cd9b8ca78d41f35c99d8
     GIT_RESET 1ec69067fa1351427f904362c1221b31538c8b57 # v3.5.0
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
         -G Ninja
