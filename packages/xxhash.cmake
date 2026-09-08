@@ -11,7 +11,10 @@ ExternalProject_Add(xxhash
     # cmake_minimum_required(VERSION 3.5), which CMake 4.4.3 still accepts.
     GIT_TAG 9e6c1819df09368b87c0fb25fe5799015d4d681f
     UPDATE_COMMAND ""
-    GIT_REMOTE_NAME origin
+    # Kwick (W-083): GIT_REMOTE_NAME removed. force_rebuild_git() treats an
+    # unset GIT_REMOTE_NAME as "a commit hash is pinned" and skips the reset;
+    # left set, it resets the checkout to @{u} (origin/dev) on every build and
+    # silently undoes the pin above.
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR>/cmake_unofficial -B<BINARY_DIR>
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release
