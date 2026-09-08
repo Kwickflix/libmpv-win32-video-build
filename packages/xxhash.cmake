@@ -2,7 +2,14 @@ ExternalProject_Add(xxhash
     GIT_REPOSITORY https://github.com/Cyan4973/xxHash.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
-    GIT_TAG dev
+    # Kwick (W-083): PIN to 2023-09-20. This tracked the moving "dev" branch,
+    # and xxHash has since moved its CMake files from cmake_unofficial/ to
+    # build/cmake/, so the configure step failed with
+    #   CMake Error: The source directory ".../xxhash/cmake_unofficial"
+    #   does not exist.
+    # This commit still has cmake_unofficial and declares
+    # cmake_minimum_required(VERSION 3.5), which CMake 4.4.3 still accepts.
+    GIT_TAG 9e6c1819df09368b87c0fb25fe5799015d4d681f
     UPDATE_COMMAND ""
     GIT_REMOTE_NAME origin
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR>/cmake_unofficial -B<BINARY_DIR>
