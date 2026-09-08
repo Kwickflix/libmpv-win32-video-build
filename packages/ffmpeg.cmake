@@ -310,7 +310,17 @@ ExternalProject_Add(ffmpeg
 
         --enable-network
 
-        ${ffmpeg_lto}
+        # Kwick (W-083): ${ffmpeg_lto} dropped. The workflow passes
+        # -DCLANG_PACKAGES_LTO=ON, which makes packages_check.cmake set it to
+        # `--enable-lto=thin`. FFmpeg only learned the =arg form in 6.1; at our
+        # pin (n6.0, ea3d24bb) `--enable-lto` is a plain boolean, so configure
+        # reads `lto` as a component name, fails to find it and dies with
+        #     Unknown option "--enable-lto=thin".
+        # `--enable-lto` on its own would configure, but the DLL Kwick Player
+        # ships carries NO lto flag at all in its embedded configure string, so
+        # its FFmpeg was built without link-time optimisation and dropping the
+        # flag is what matches the engine we ship. The rest of the build keeps
+        # ThinLTO: this only removes it from FFmpeg.
         --extra-cflags='-Wno-error=int-conversion'
         "--extra-libs='${ffmpeg_extra_libs}'" # -lstdc++ / -lc++ needs by libjxl and shaderc
     BUILD_COMMAND ${MAKE}
