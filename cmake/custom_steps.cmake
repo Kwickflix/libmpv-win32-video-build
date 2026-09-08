@@ -138,7 +138,17 @@ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_
         # 2025-12-11. Every caller of force_rebuild_git IS a git package, so a
         # missing .git just means "not cloned yet" and skipping is correct -
         # the download step still does its job.
-        COMMAND bash -c "test -d .git || exit 0; git am --abort 2> /dev/null || true"
+        # Kwick (W-083): fall back to deleting .git/rebase-apply outright.
+        # A git am that failed in an earlier run leaves that directory behind,
+        # and every later git am then refuses to start with
+        #   fatal: previous rebase directory .git/rebase-apply still exists
+        #   but mbox given.
+        # `git am --abort` is supposed to clear it, but on a DETACHED HEAD -
+        # which is exactly what pinning a package to a commit produces - the
+        # abort itself fails ("HEAD does not point to a branch"), the `|| true`
+        # swallowed it, and the directory survived for good. Removing the
+        # directory works regardless of what HEAD points at.
+        COMMAND bash -c "test -d .git || exit 0; git am --abort 2> /dev/null || rm -rf .git/rebase-apply"
         COMMAND bash -c "test -d .git || exit 0; git fetch --filter=tree:0 --no-recurse-submodules"
         COMMAND bash -c "test -d .git || exit 0; exec ${stamp_dir}/reset_head.sh"
     )
