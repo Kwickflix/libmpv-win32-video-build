@@ -16,19 +16,24 @@ ExternalProject_Add(mbedtls
     # no hand-clearing is ever needed. It also needs no pre-image blob, which
     # these `--filter=tree:0` clones do not have. ffmpeg has always done this.
     # Verified locally at each package's pinned commit, on blobless clones.
-    # Kwick (W-083): restore the tree before applying. A package whose build
-    # fails AFTER its patch step is left with the patch in its working tree -
-    # nothing puts it back, because the restore lives in `postremovebuild`,
-    # which only runs after a successful install. The next run then re-applies
-    # a patch that is already in and dies with
+    # Kwick (W-083): restore the tree, THEN apply, as two separate COMMANDs.
+    # A package whose build fails anywhere AFTER its patch step is left with the
+    # patch in its working tree - nothing puts it back, because the restore
+    # lives in `postremovebuild`, which only runs after a successful install.
+    # The next run then re-applies a patch that is already in and dies with
     #   error: patch failed: <file>:<line>
     #   error: <file>: patch does not apply
-    # That is exactly what happened to ffmpeg: its patch applied in one run,
-    # its configure step then failed, and the run after could not patch at all.
-    # fontconfig escaped it only because it completed and got restored.
-    # `git checkout -f -- .` is a no-op on a clean tree and makes the patch
-    # step start from the same place every time.
-    PATCH_COMMAND ${EXEC} git checkout -f -- . && git apply ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls-*.patch
+    # which is what happened to ffmpeg. `git checkout -f -- .` is a no-op on a
+    # clean tree and makes the patch step start from the same place every time.
+    #
+    # It has to be a second COMMAND, not `&& git apply` on one line: CMake
+    # renders the step as a shell line and only prefixes the FIRST segment with
+    # ${EXEC}, so the `git apply` half lost the wrapper - and with it the
+    # `eval` that expands the *.patch glob:
+    #   error: can't open patch '.../fontconfig-*.patch': No such file or
+    #   directory
+    PATCH_COMMAND ${EXEC} git checkout -f -- .
+    COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls-*.patch
     UPDATE_COMMAND ""
     # Kwick (W-083): PIN to 030f11b0, committed 2023-09-24T07:48:47Z - three
     # minutes before media-kit published the release this DLL comes from.

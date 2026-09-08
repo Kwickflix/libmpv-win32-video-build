@@ -29,19 +29,24 @@ ExternalProject_Add(ffmpeg
     GIT_REPOSITORY https://github.com/FFmpeg/FFmpeg.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_TAG ea3d24bbe3c58b171e55fe2151fc7ffaca3ab3d2
-    # Kwick (W-083): restore the tree before applying. A package whose build
-    # fails AFTER its patch step is left with the patch in its working tree -
-    # nothing puts it back, because the restore lives in `postremovebuild`,
-    # which only runs after a successful install. The next run then re-applies
-    # a patch that is already in and dies with
+    # Kwick (W-083): restore the tree, THEN apply, as two separate COMMANDs.
+    # A package whose build fails anywhere AFTER its patch step is left with the
+    # patch in its working tree - nothing puts it back, because the restore
+    # lives in `postremovebuild`, which only runs after a successful install.
+    # The next run then re-applies a patch that is already in and dies with
     #   error: patch failed: <file>:<line>
     #   error: <file>: patch does not apply
-    # That is exactly what happened to ffmpeg: its patch applied in one run,
-    # its configure step then failed, and the run after could not patch at all.
-    # fontconfig escaped it only because it completed and got restored.
-    # `git checkout -f -- .` is a no-op on a clean tree and makes the patch
-    # step start from the same place every time.
-    PATCH_COMMAND ${EXEC} git checkout -f -- . && git apply ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg-*.patch
+    # which is what happened to ffmpeg. `git checkout -f -- .` is a no-op on a
+    # clean tree and makes the patch step start from the same place every time.
+    #
+    # It has to be a second COMMAND, not `&& git apply` on one line: CMake
+    # renders the step as a shell line and only prefixes the FIRST segment with
+    # ${EXEC}, so the `git apply` half lost the wrapper - and with it the
+    # `eval` that expands the *.patch glob:
+    #   error: can't open patch '.../fontconfig-*.patch': No such file or
+    #   directory
+    PATCH_COMMAND ${EXEC} git checkout -f -- .
+    COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg-*.patch
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 <SOURCE_DIR>/configure
         --cross-prefix=${TARGET_ARCH}-
