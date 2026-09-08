@@ -207,6 +207,11 @@ jobs:
     name: Upload releases
     runs-on: ubuntu-latest
     needs: build_mpv
+    # Kwick (W-083): disabled. Every step in this job authenticates as
+    # shinchiro and pushes tags to / deletes caches on
+    # github.com/shinchiro/mpv-winbuild-cmake - a third party's repository.
+    # We only want the build artifact from build_mpv.
+    if: false
     env:
       GH_TOKEN: ${{ github.token }}
       CURL_RETRIES: "--connect-timeout 60 --retry 999 --retry-delay 5 --retry-all-errors"
@@ -326,6 +331,10 @@ jobs:
     name: Run mpv_gcc
     runs-on: ubuntu-latest
     needs: build_mpv
+    # Kwick (W-083): disabled. This POSTs a workflow_dispatch to
+    # github.com/shinchiro/mpv-winbuild-cmake - a third party's repository -
+    # and we have no reason to trigger builds there.
+    if: false
     env:
       GH_TOKEN: ${{ github.token }}
       GH_COMMAND: ${{ github.event.inputs.command }}
@@ -348,7 +357,10 @@ jobs:
     name: Gist
     runs-on: ubuntu-latest
     needs: build_mpv
-    if: ${{ always() }}
+    # Kwick (W-083): disabled. Reads job logs from
+    # github.com/shinchiro/mpv-winbuild-cmake with a GIST_TOKEN secret this
+    # fork does not have, and publishes them to a gist we do not want.
+    if: false
     env:
       GH_TOKEN: ${{ secrets.GIST_TOKEN }}
       RUN_ID: ${{ github.run_id }}
