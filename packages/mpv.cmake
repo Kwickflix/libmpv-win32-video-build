@@ -11,7 +11,6 @@ ExternalProject_Add(mpv
         uchardet
         mujs
         shaderc
-        libplacebo
         spirv-cross
     GIT_REPOSITORY https://github.com/mpv-player/mpv.git
     # Kwick (W-083): PIN. This recipe tracked mpv's default branch while
@@ -46,7 +45,16 @@ ExternalProject_Add(mpv
         -Dlcms2=enabled
         -Dopenal=disabled
         -Dspirv-cross=enabled
-        -Dvulkan=enabled
+        # Kwick (W-083): the DLL Kwick Player ships reports, in its own embedded
+        # mpv configure string, "-Dvulkan=disabled -Dlibplacebo=disabled". This
+        # repo's recipe says enabled, so the recipe alone never produced our
+        # DLL - media-kit passed the workflow's "command" input to change flags
+        # at build time, and those run logs have expired. Match the shipped
+        # binary, which is the record. It also drops the vulkan package, whose
+        # cross-compile patch no longer applies to Vulkan-Loader master
+        # ("sha1 information is lacking or useless (loader/CMakeLists.txt)").
+        -Dvulkan=disabled
+        -Dlibplacebo=disabled
         -Degl-angle=enabled
     BUILD_COMMAND ${EXEC} LTO_JOB=1 ninja -C <BINARY_DIR>
     INSTALL_COMMAND ""

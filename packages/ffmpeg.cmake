@@ -19,7 +19,6 @@ ExternalProject_Add(ffmpeg
         vorbis
         libvpl
         libxml2
-        libplacebo
         shaderc
         dav1d
         mbedtls
@@ -87,9 +86,18 @@ ExternalProject_Add(ffmpeg
 
         --enable-mbedtls
 
+        # Kwick (W-083): --enable-libplacebo removed. The DLL Kwick Player ships
+        # does NOT list it in its embedded FFmpeg configure string, and mpv here
+        # is built -Dlibplacebo=disabled, so nothing used it. Keeping it would
+        # drag in the vulkan package, whose cross-compile patch no longer
+        # applies to Vulkan-Loader master.
+        # --disable-libjxl is left as this repo has it. The shipped DLL DOES
+        # carry libjxl, so this is a deliberate, documented difference: libjxl
+        # is a still-image (JPEG XL) codec used for cover art, nothing a member
+        # streams, and this repo's HEAD commit is "fix: disable libjxl". BSD-3
+        # either way, so no licence effect.
         --disable-libjxl
         --enable-libdav1d
-        --enable-libplacebo
 
         --enable-libvpl
         --enable-libbs2b
