@@ -7,6 +7,8 @@ ExternalProject_Add(libass
         fontconfig
         libunibreak
     GIT_REPOSITORY https://github.com/libass/libass.git
+    # Kwick (W-083): PIN to 2023-08-21, contemporaneous with the pinned mpv.
+    GIT_TAG 5c15c883a4783641f7e71a6a1f440209965eb64f
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""

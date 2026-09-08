@@ -10,6 +10,10 @@ ExternalProject_Add(libplacebo
         libdovi
         xxhash
     GIT_REPOSITORY https://github.com/haasn/libplacebo.git
+    # Kwick (W-083): PIN to 2023-09-21, contemporaneous with the pinned mpv.
+    # mpv 0.36 needs libplacebo 6.x; today's libplacebo is 7.x and will not
+    # build against it.
+    GIT_TAG 61c1c589f66bd913a0680d741a24e32894ed127b
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     GIT_SUBMODULES ""

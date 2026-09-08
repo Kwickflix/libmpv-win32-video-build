@@ -14,6 +14,13 @@ ExternalProject_Add(mpv
         libplacebo
         spirv-cross
     GIT_REPOSITORY https://github.com/mpv-player/mpv.git
+    # Kwick (W-083): PIN. This recipe tracked mpv's default branch while
+    # pinning FFmpeg to n6.0 (ea3d24bb), so a build today would put 2026 mpv
+    # against 2023 FFmpeg - a combination modern mpv does not support, and a
+    # far bigger change than the six decoders this fork exists to add.
+    # 652a1dd9 is v0.36.0-403-g652a1dd907, the exact commit the DLL Kwick
+    # Player ships today was built from (it reports that version string).
+    GIT_TAG 652a1dd90711839acdccc08004056d25514ef2d8
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
