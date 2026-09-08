@@ -8,7 +8,21 @@ ExternalProject_Add(spirv-cross
     # force_rebuild_git does not reset the pin to @{u}.
     GIT_TAG 43a59b7cff977476167543f5e7e0d51c8d68d745
     UPDATE_COMMAND ""
-    PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross-*.patch
+    # Kwick (W-083): `git apply`, not `git am --3way`. `git am` COMMITS each
+    # patch, so HEAD moves off the pinned commit; force-update's
+    # `git reset --hard` (to the pin, or to HEAD for a floating package) then
+    # cannot undo it, the cached src_packages keeps the patched HEAD, and the
+    # next run re-applies a patch that is already in. That is what produced
+    #   Applying: ...  No changes -- Patch already applied.
+    #   error: sha1 information is lacking or useless (meson.build)
+    #   Patch failed at 0002 ...                        (exit code 128)
+    # on fontconfig five runs running, and it is a trap every `git am` package
+    # is one failed run away from. `git apply` touches the working tree only:
+    # any reset restores a pristine tree, so the patch step is idempotent and
+    # no hand-clearing is ever needed. It also needs no pre-image blob, which
+    # these `--filter=tree:0` clones do not have. ffmpeg has always done this.
+    # Verified locally at each package's pinned commit, on blobless clones.
+    PATCH_COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/spirv-cross-*.patch
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release

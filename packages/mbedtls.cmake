@@ -2,7 +2,21 @@ ExternalProject_Add(mbedtls
     GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
-    PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls-*.patch
+    # Kwick (W-083): `git apply`, not `git am --3way`. `git am` COMMITS each
+    # patch, so HEAD moves off the pinned commit; force-update's
+    # `git reset --hard` (to the pin, or to HEAD for a floating package) then
+    # cannot undo it, the cached src_packages keeps the patched HEAD, and the
+    # next run re-applies a patch that is already in. That is what produced
+    #   Applying: ...  No changes -- Patch already applied.
+    #   error: sha1 information is lacking or useless (meson.build)
+    #   Patch failed at 0002 ...                        (exit code 128)
+    # on fontconfig five runs running, and it is a trap every `git am` package
+    # is one failed run away from. `git apply` touches the working tree only:
+    # any reset restores a pristine tree, so the patch step is idempotent and
+    # no hand-clearing is ever needed. It also needs no pre-image blob, which
+    # these `--filter=tree:0` clones do not have. ffmpeg has always done this.
+    # Verified locally at each package's pinned commit, on blobless clones.
+    PATCH_COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls-*.patch
     UPDATE_COMMAND ""
     # Kwick (W-083): PIN to 030f11b0, committed 2023-09-24T07:48:47Z - three
     # minutes before media-kit published the release this DLL comes from.

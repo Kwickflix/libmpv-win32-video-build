@@ -9,27 +9,6 @@ ExternalProject_Add(libarchive
     GIT_REPOSITORY https://github.com/libarchive/libarchive.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
-    # Kwick (W-083): PIN to 01f3e9fb (2026-09-08 00:58Z), the mainline commit
-    # immediately before merge c4cfba67, which landed upstream commit e1dcb29
-    # "Windows: Use bcrypt even if CNG is disabled" at 01:26Z the same morning.
-    # That commit is an upstream regression for exactly our configuration.
-    # It deleted this from CMakeLists.txt:
-    #     ELSE(ENABLE_CNG)
-    #       UNSET(HAVE_BCRYPT_H CACHE)
-    # so with -DENABLE_CNG=OFF (set below, and upstream's own default here)
-    # HAVE_BCRYPT_H is now defined while ARCHIVE_CRYPTO_*_WIN is not. The two
-    # guards then disagree: archive_digest.c compiles its win_crypto_* bodies
-    # on `#if defined(HAVE_BCRYPT_H)` alone, while archive_digest_private.h
-    # only includes <bcrypt.h> and declares Digest_CTX when an
-    # ARCHIVE_CRYPTO_*_WIN is set. 15 errors, starting
-    #     archive_digest.c:75: unknown type name 'Digest_CTX'
-    #     archive_digest.c:81: call to undeclared function 'BCryptHashData'
-    # Turning ENABLE_CNG ON would also make the guards agree, but it changes
-    # what goes into the DLL we ship (Zip AES via CNG, plus a bcrypt link)
-    # away from the stock build, so pin instead. libarchive is unpatched, so
-    # the pin carries no patch pre-image concern; CMake floor at 01f3e9fb is
-    # 3.17, fine under CMake 4.4.3. Revisit when upstream fixes the guard.
-    GIT_TAG 01f3e9fb610f0af45527436af721693d40def767
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
         -G Ninja
@@ -58,7 +37,31 @@ ExternalProject_Add(libarchive
         -DENABLE_LZO=ON
         -DENABLE_LZMA=ON
         -DENABLE_CPIO=OFF
-        -DENABLE_CNG=OFF
+        # Kwick (W-083): ON. It was OFF (upstream media-kit's setting), and OFF
+        # does not build on Windows at either side of the merge that landed
+        # upstream commit e1dcb29 "Windows: Use bcrypt even if CNG is disabled"
+        # on 2026-09-08 01:26Z:
+        #   before it, archive_random.c calls BCryptGenRandom while bcrypt is
+        #   not in ADDITIONAL_LIBS, so bsdunzip.exe fails to link with
+        #     ld.lld: error: undefined symbol: BCryptGenRandom
+        #   after it, HAVE_BCRYPT_H is defined while ARCHIVE_CRYPTO_*_WIN is
+        #   not, so archive_digest.c compiles its win_crypto_* bodies against a
+        #   header that declares neither <bcrypt.h> nor Digest_CTX:
+        #     archive_digest.c:75: unknown type name 'Digest_CTX'
+        #
+        # ON is also what the DLL Kwick Player actually ships was built with,
+        # read straight out of its import table: it imports twelve symbols from
+        # bcrypt.dll, including BCryptDeriveKeyPBKDF2 and
+        # BCryptGenerateSymmetricKey (libarchive's archive_cryptor.c, Zip AES),
+        # BCryptCreateHash / BCryptHashData / BCryptFinishHash
+        # (archive_digest.c) and BCryptGenRandom (archive_random.c). That is
+        # libarchive's CNG feature set exactly, and nothing else in this build
+        # uses CNG PBKDF2. So OFF never described the engine we ship - the same
+        # story as vulkan and libplacebo, where the recipe as written did not
+        # produce our binary either. ON restores parity, makes both guards
+        # agree at any libarchive commit, and puts bcrypt on the link line for
+        # everything downstream that pulls in libarchive.a.
+        -DENABLE_CNG=ON
         -DENABLE_CAT=OFF
         -DENABLE_TAR=OFF
         -DENABLE_WERROR=OFF
