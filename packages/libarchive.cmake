@@ -5,7 +5,6 @@ ExternalProject_Add(libarchive
         lzo
         xz
         zlib
-        zstd
         libxml2
     GIT_REPOSITORY https://github.com/libarchive/libarchive.git
     SOURCE_DIR ${SOURCE_LOCATION}
@@ -19,7 +18,18 @@ ExternalProject_Add(libarchive
         -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS=OFF
         -DENABLE_ZLIB=ON
-        -DENABLE_ZSTD=ON
+        # Kwick (W-083): OFF, to match the DLL Kwick Player ships. That binary
+        # contains libarchive's "ZSTD codec is unsupported" string - the message
+        # libarchive compiles in when zstd support is absent - and only two
+        # zstd-ish strings in 29 MB, where a linked libzstd would leave
+        # hundreds. So the shipped engine has no zstd either.
+        # It also removes a blocker: zstd 1.6.0 fails to configure under CMake
+        # 4.4.3 with "check_compiler_flag: CXX: needs to be enabled before use"
+        # (AddZstdCompilationFlags.cmake calls CHECK_CXX_COMPILER_FLAG while the
+        # project declares C only). Pinning is not a way out either - zstd
+        # v1.5.5 and older declare cmake_minimum_required 2.8.12, which CMake 4
+        # rejects outright. If zstd is ever needed, v1.5.6 is the usable one.
+        -DENABLE_ZSTD=OFF
         -DENABLE_BZip2=ON
         -DENABLE_ICONV=ON
         -DENABLE_LIBXML2=ON

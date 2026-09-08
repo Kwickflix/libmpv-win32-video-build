@@ -14,7 +14,11 @@ ExternalProject_Add(ffmpeg
         libmysofa
         fontconfig
         harfbuzz
-        opus
+        # Kwick (W-083): opus removed. The DLL Kwick Player ships carries
+        # --enable-decoder=opus (FFmpeg's own native Opus decoder, which the
+        # decoder whitelist below keeps) but NOT --enable-libopus, so libopus
+        # was never linked. It was a dependency nothing used, and it fails to
+        # configure under meson 1.10.
         speex
         vorbis
         libvpl
