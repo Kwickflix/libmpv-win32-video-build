@@ -84,8 +84,20 @@ function(force_rebuild_git _name)
     get_property(source_dir TARGET ${_name} PROPERTY _EP_SOURCE_DIR)
 
     if("${git_remote_name}" STREQUAL "" AND NOT "${git_tag}" STREQUAL "")
-        # GIT_REMOTE_NAME is not set when commit hash is specified
-        set(reset "")
+        # GIT_REMOTE_NAME is not set when commit hash is specified.
+        #
+        # Kwick (W-083): reset to the PINNED COMMIT, not to HEAD (which is what
+        # an empty value here means). force-update deletes the zero-length
+        # stamp files, so the patch step runs again on every build. Every
+        # patched package except ffmpeg applies its patch with `git am`, which
+        # COMMITS - so resetting to HEAD keeps the previous run's patch commits
+        # and re-applying then dies with
+        #   Patch failed at 0001 ...   (exit code 128)
+        # For unpinned packages the reset is "@{u}", which discards those
+        # commits and is why they work. Pinned packages need the same, aimed at
+        # the pin. ffmpeg was unaffected only because `git apply` touches the
+        # working tree without committing.
+        set(reset "${git_tag}")
     elseif(NOT "${git_reset}" STREQUAL "")
         set(reset "${git_reset}")
     else()
