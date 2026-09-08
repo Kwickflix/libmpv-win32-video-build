@@ -56,7 +56,12 @@ ExternalProject_Add(mpv
         -Dvulkan=disabled
         -Dlibplacebo=disabled
         -Degl-angle=enabled
-    BUILD_COMMAND ${EXEC} LTO_JOB=1 ninja -C <BINARY_DIR>
+    # Kwick (W-083): -k 0 here too. This is mpv's OWN ninja, nested inside the
+    # outer build, so the outer -k 0 does not reach it: mpv stops at its first
+    # compile error and one 25-minute run reports one broken file. mpv is the
+    # last package, so that is the most expensive place to find things one at a
+    # time. Same bargain as the workflow - ninja still exits non-zero.
+    BUILD_COMMAND ${EXEC} LTO_JOB=1 ninja -k 0 -C <BINARY_DIR>
     INSTALL_COMMAND ""
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
