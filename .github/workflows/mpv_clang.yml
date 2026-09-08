@@ -104,17 +104,41 @@ jobs:
         run: |
           if [[ $BIT == x86_64_v3 ]]; then echo "x86_64_v3_ARCH=-DGCC_ARCH=x86-64-v3" >> $GITHUB_ENV; fi
           cmake -DTARGET_ARCH=${{ env.arch }}-w64-mingw32 -DCOMPILER_TOOLCHAIN=clang ${{ env.x86_64_v3_ARCH }} -DCMAKE_INSTALL_PREFIX=$PWD/clang_root -DMINGW_INSTALL_PREFIX=$PWD/build_$BIT/$BIT-w64-mingw32 -DSINGLE_SOURCE_LOCATION=$PWD/src_packages -DRUSTUP_LOCATION=$PWD/clang_root/install_rustup -DENABLE_CCACHE=ON -DCLANG_PACKAGES_LTO=ON -G Ninja --fresh -B build_$BIT -S $PWD
-          ninja -C build_$BIT download || true
+          # Kwick (W-083): -k 0 = keep going after a failure. Ninja's default
+          # stops at the first failing edge, so one red run named exactly one
+          # broken package and the next problem only appeared on the run after
+          # that - eighteen dispatches, eighteen failure emails. With -k 0 a
+          # single run lists EVERY failing package (each one as a "FAILED:"
+          # line) and they get fixed as one batch. Ninja still exits non-zero
+          # if anything failed, so nothing is being muted. Permanent.
+          ninja -k 0 -C build_$BIT download || true
 
       - name: Building mpv
         id: build_mpv_step
         env:
           MPV_TARBALL: ${{ github.event.inputs.mpv_tarball }}
         run: |
-          ninja -C build_$BIT update
+          # Kwick (W-083): -k 0 on both, for the reason above - AND the failure
+          # has to be carried to the end of the step rather than raised in the
+          # middle of it. These run blocks execute under `set -e`, so a failing
+          # `ninja update` would abort the step and `ninja mpv` would never
+          # run: the report would list the update failures and none of the
+          # build failures, which is the very thing -k 0 is here to stop.
+          # Collect the status, keep going, exit non-zero at the end.
+          # llvm-copy-builtin is deliberately left fatal: it is a toolchain
+          # step, and continuing without it makes every package fail to link
+          # and buries the real errors.
+          rc=0
+          ninja -k 0 -C build_$BIT update || rc=1
           ninja -C build_$BIT llvm-copy-builtin
-          $MPV_TARBALL && ninja -C build_$BIT mpv-release || ninja -C build_$BIT mpv
-          $MPV_TARBALL && echo "mpv_ver=$(cat build_$BIT/packages/mpv-release-prefix/VERSION)" >> $GITHUB_OUTPUT || echo "mpv_ver=UNKNOWN" >> $GITHUB_OUTPUT
+          if [ "$MPV_TARBALL" = "true" ]; then
+            ninja -k 0 -C build_$BIT mpv-release || rc=1
+            echo "mpv_ver=$(cat build_$BIT/packages/mpv-release-prefix/VERSION)" >> $GITHUB_OUTPUT
+          else
+            ninja -k 0 -C build_$BIT mpv || rc=1
+            echo "mpv_ver=UNKNOWN" >> $GITHUB_OUTPUT
+          fi
+          exit $rc
 
       - name: Packaging mpv
         run: |
@@ -141,8 +165,15 @@ jobs:
           # Newest first. Directory order kept burying the failing package's
           # log past the cap; the log that matters is always among the most
           # recently written, so sort by mtime instead of hoping.
+          # awk, not `head -60`: head closes the pipe after 60 lines, sort gets
+          # SIGPIPE, and under `set -o pipefail` (the default for these run
+          # blocks) the whole step exits 141 - so this step showed up as a
+          # second red X on every failed run for a reason that had nothing to
+          # do with the build. awk reads its input to the end and exits 0.
+          # 120, not 60: with `ninja -k 0` several packages can fail in one
+          # run and every one of their logs has to be visible.
           find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 -printf '%T@ %p\n' 2>/dev/null \
-            | sort -rn | head -60 | cut -d' ' -f2- | while read -r f; do
+            | sort -rn | awk 'NR<=120' | cut -d' ' -f2- | while read -r f; do
               if [ -s "$f" ]; then
                 echo "===== $f ====="
                 tail -30 "$f"
