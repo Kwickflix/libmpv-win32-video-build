@@ -159,6 +159,11 @@ jobs:
           retention-days: 1
 
       - name: Saving clang root
+        # Kwick (W-083): save even when a later step fails. clang_root is the
+        # output of "Building LLVM", which takes about 50 minutes and had
+        # already SUCCEEDED when the mingw toolchain step failed. Without this
+        # the save step is skipped and every retry rebuilds LLVM from scratch.
+        if: always()
         uses: actions/cache/save@main
         with:
           path: clang_root
