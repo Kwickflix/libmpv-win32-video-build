@@ -5,8 +5,13 @@ ExternalProject_Add(shaderc
         spirv-tools
     GIT_REPOSITORY https://github.com/google/shaderc.git
     SOURCE_DIR ${SOURCE_LOCATION}
-    GIT_REMOTE_NAME origin
-    GIT_TAG main
+    # Kwick (W-083): PIN to 2023-09-24. shaderc must be built against MATCHING
+    # glslang / SPIRV-Tools / SPIRV-Headers (it normally pins them itself via
+    # its DEPS file, which this recipe bypasses by symlinking them in). All four
+    # were floating on main independently, so nothing kept them consistent.
+    # They are now pinned as one contemporaneous set. CMake floor here is
+    # 3.17.2, so CMake 4.4.3 is fine with it.
+    GIT_TAG 03732bf41de4ef41aae38c988d3b3bd78cdb1fd4
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} LTO_JOB=1 CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>

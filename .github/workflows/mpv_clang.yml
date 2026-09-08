@@ -138,15 +138,16 @@ jobs:
           # restored cache full of stamp logs from previous runs, and without
           # the time filter they exhaust the cap before the failing package's
           # log is reached.
-          echo "--- recent stamp logs present ---"
-          find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -200
-          echo "--- contents ---"
-          for f in $(find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -400); do
-            if [ -s "$f" ]; then
-              echo "===== $f ====="
-              tail -25 "$f"
-            fi
-          done
+          # Newest first. Directory order kept burying the failing package's
+          # log past the cap; the log that matters is always among the most
+          # recently written, so sort by mtime instead of hoping.
+          find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 -printf '%T@ %p\n' 2>/dev/null \
+            | sort -rn | head -60 | cut -d' ' -f2- | while read -r f; do
+              if [ -s "$f" ]; then
+                echo "===== $f ====="
+                tail -30 "$f"
+              fi
+            done
 
       - name: Collecting logs
         if: always()
