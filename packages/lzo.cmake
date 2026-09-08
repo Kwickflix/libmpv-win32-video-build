@@ -1,5 +1,9 @@
 ExternalProject_Add(lzo
-    URL "https://fossies.org/linux/misc/lzo-2.10.tar.gz"
+    # Kwick (W-083): fossies.org now answers HTTP 410 Gone for this file.
+    # Switched to the canonical upstream at oberhumer.com, which serves the
+    # identical tarball - its SHA1 was checked against the URL_HASH below
+    # before making this change, and matches.
+    URL "https://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz"
     URL_HASH SHA1=4924676a9bae5db58ef129dc1cebce3baa3c4b5d
     DOWNLOAD_DIR ${SOURCE_LOCATION}
     UPDATE_COMMAND ""

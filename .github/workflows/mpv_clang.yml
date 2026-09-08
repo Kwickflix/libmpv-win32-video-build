@@ -134,7 +134,7 @@ jobs:
         if: failure()
         run: |
           echo "cmake: $(cmake --version | head -1)"
-          for f in $(find build_$BIT -path "*-stamp/*" -name "*-configure-*.log" -o -path "*-stamp/*" -name "*-build-*.log" 2>/dev/null | head -60); do
+          for f in $(find build_$BIT -path "*-stamp/*" -name "*-*-err.log" -o -path "*-stamp/*" -name "*-configure-*.log" -o -path "*-stamp/*" -name "*-build-*.log" 2>/dev/null | head -80); do
             if [ -s "$f" ]; then
               echo "===== $f ====="
               tail -30 "$f"
