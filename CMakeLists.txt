@@ -20,9 +20,12 @@ string(REGEX MATCH "^[^-]+" TARGET_CPU ${TARGET_ARCH})
 execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE HOST_ARCH)
 string(REGEX MATCH "^[^-]+" HOST_CPU ${HOST_ARCH})
 
-execute_process(COMMAND meson --version OUTPUT_VARIABLE MESON_VERSION)
-if(NOT MESON_VERSION GREATER_EQUAL 1.3)
-    message(FATAL_ERROR "Meson 1.3.0 or greater is required. Install it with pip instead.")
+execute_process(COMMAND meson --version OUTPUT_VARIABLE MESON_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+# Kwick (W-083): this used a NUMERIC comparison (GREATER_EQUAL), so once meson
+# reached 1.10 the version read as the number 1.1 and failed a ">= 1.3" test
+# that meson 1.9 had passed. Compare it as a version, not as a number.
+if(MESON_VERSION VERSION_LESS 1.3)
+    message(FATAL_ERROR "Meson 1.3.0 or greater is required (found '${MESON_VERSION}'). Install it with pip instead.")
 endif()
 
 if(TARGET_CPU STREQUAL "x86_64")
