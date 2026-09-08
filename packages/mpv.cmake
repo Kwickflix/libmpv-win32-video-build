@@ -66,11 +66,33 @@ ExternalProject_Add(mpv
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
+# Kwick (W-083): copy the optional debug artefacts only if the build actually
+# produced them. mpv.com and mpv.pdb are the two files this configuration does
+# not always emit: mpv 652a1dd9 built with -Dlibmpv=true links exactly
+# libmpv-2.dll and mpv.exe (read out of the run log), and the mingw clang driver
+# emits DWARF rather than a PDB. `cmake -E copy` on a missing source fails the
+# step, and this step is what populates mpv-dev - the package carrying
+# libmpv-2.dll, the only thing Kwick Player needs out of this build.
+#
+# A script, not a `test -f ... &&` inside the COMMAND: CMake splits a *_COMMAND
+# on `&&` and prefixes only the first segment with ${EXEC}, whose `eval $*` is
+# what the rest would depend on. Same idiom as rename.sh below.
+set(OPTIONAL_COPY ${CMAKE_CURRENT_BINARY_DIR}/mpv-prefix/src/optional_copy.sh)
+file(WRITE ${OPTIONAL_COPY}
+"#!/bin/bash
+# $1 = mpv build dir, $2 = destination
+mkdir -p \"$2\"
+for f in mpv.pdb mpv.debug; do
+    if [ -f \"$1/$f\" ]; then cp -f \"$1/$f\" \"$2/$f\"; echo \"copied $f\"; else echo \"$f not built, skipping\"; fi
+done
+exit 0")
+file(CHMOD ${OPTIONAL_COPY}
+PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
 ExternalProject_Add_Step(mpv strip-binary
     DEPENDEES build
     ${mpv_add_debuglink}
     COMMAND ${EXEC} ${TARGET_ARCH}-strip -s <BINARY_DIR>/mpv.exe
-    COMMAND ${EXEC} ${TARGET_ARCH}-strip -s <BINARY_DIR>/mpv.com
     COMMAND ${EXEC} ${TARGET_ARCH}-strip -s <BINARY_DIR>/libmpv-2.dll
     COMMENT "Stripping mpv binaries"
 )
@@ -78,10 +100,13 @@ ExternalProject_Add_Step(mpv strip-binary
 ExternalProject_Add_Step(mpv copy-binary
     DEPENDEES strip-binary
     COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/mpv.exe                           ${CMAKE_CURRENT_BINARY_DIR}/mpv-package/mpv.exe
-    COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/mpv.com                           ${CMAKE_CURRENT_BINARY_DIR}/mpv-package/mpv.com
     COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/mpv.pdf                           ${CMAKE_CURRENT_BINARY_DIR}/mpv-package/doc/manual.pdf
     COMMAND ${CMAKE_COMMAND} -E copy ${MINGW_INSTALL_PREFIX}/etc/fonts/fonts.conf   ${CMAKE_CURRENT_BINARY_DIR}/mpv-package/mpv/fonts.conf
-    ${mpv_copy_debug}
+    # Kwick (W-083): best-effort. ${mpv_copy_debug} copies mpv.pdb for the
+    # clang toolchain, but nothing in this configuration asks lld for a PDB
+    # (no -Wl,--pdb=), so it may not exist - and one missing optional file
+    # here fails the whole step, which is what populates mpv-dev.
+    COMMAND ${OPTIONAL_COPY} <BINARY_DIR> ${CMAKE_CURRENT_BINARY_DIR}/mpv-debug
     COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/libmpv-2.dll          ${CMAKE_CURRENT_BINARY_DIR}/mpv-dev/libmpv-2.dll
     COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/libmpv.dll.a          ${CMAKE_CURRENT_BINARY_DIR}/mpv-dev/libmpv.dll.a
     COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/libmpv/client.h       ${CMAKE_CURRENT_BINARY_DIR}/mpv-dev/include/mpv/client.h
