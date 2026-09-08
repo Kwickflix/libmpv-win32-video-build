@@ -157,6 +157,8 @@ ExternalProject_Add(ffmpeg
         --enable-decoder=pcm*
         --enable-decoder=dsd*
         --enable-decoder=dca
+        --enable-decoder=truehd
+        --enable-decoder=mlp
 
         --enable-decoder=ssa
         --enable-decoder=ass
@@ -171,6 +173,8 @@ ExternalProject_Add(ffmpeg
         --enable-decoder=vplayer
         --enable-decoder=webvtt
         --enable-decoder=movtext
+        --enable-decoder=pgssub
+        --enable-decoder=ccaption
 
         --enable-decoder=mjpeg
         --enable-decoder=ljpeg
@@ -207,6 +211,7 @@ ExternalProject_Add(ffmpeg
 
         --enable-demuxer=aac
         --enable-demuxer=ac3
+        --enable-demuxer=eac3
         --enable-demuxer=aiff
         --enable-demuxer=ape
         --enable-demuxer=asf
@@ -257,6 +262,7 @@ ExternalProject_Add(ffmpeg
         --enable-parser=tak
         --enable-parser=vorbis
         --enable-parser=dca
+        --enable-parser=mlp
 
         --enable-filter=overlay
         --enable-filter=equalizer
