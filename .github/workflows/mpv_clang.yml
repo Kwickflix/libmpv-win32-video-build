@@ -138,10 +138,13 @@ jobs:
           # restored cache full of stamp logs from previous runs, and without
           # the time filter they exhaust the cap before the failing package's
           # log is reached.
+          echo "--- recent stamp logs present ---"
+          find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -200
+          echo "--- contents ---"
           for f in $(find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -120); do
-            if [ -s "$f" ] && grep -qiE "error|fatal|failed" "$f" 2>/dev/null; then
+            if [ -s "$f" ]; then
               echo "===== $f ====="
-              tail -30 "$f"
+              tail -25 "$f"
             fi
           done
 
