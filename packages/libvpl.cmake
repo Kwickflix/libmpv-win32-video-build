@@ -1,6 +1,10 @@
 ExternalProject_Add(libvpl
     GIT_REPOSITORY https://github.com/oneapi-src/oneVPL.git
-    SOURCE_DIR ${SOURCE_LOCATION}
+    # Kwick (W-083): PIN to 2023-09-24. oneapi-src/oneVPL has since been renamed
+    # and restructured (the repo now reports itself as "libvpl"), and this
+    # recipe's -DBUILD_* options were written for the older layout. At
+    # ca5bbbb0 the CMake floor is 3.13.0, so CMake 4.4.3 is still happy with it.
+    GIT_TAG ca5bbbb057a6e84b103aca807612afb693ad046c
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>

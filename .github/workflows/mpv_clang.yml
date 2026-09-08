@@ -141,7 +141,7 @@ jobs:
           echo "--- recent stamp logs present ---"
           find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -200
           echo "--- contents ---"
-          for f in $(find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -120); do
+          for f in $(find build_$BIT -path "*-stamp/*" -name "*.log" -mmin -90 2>/dev/null | head -400); do
             if [ -s "$f" ]; then
               echo "===== $f ====="
               tail -25 "$f"

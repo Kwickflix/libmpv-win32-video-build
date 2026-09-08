@@ -10,6 +10,13 @@ ExternalProject_Add(libsoxr
         -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
         -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS=OFF
+        # Kwick (W-083): libsoxr's CMakeLists declares
+        #   cmake_minimum_required (VERSION 3.1 FATAL_ERROR)
+        # and CMake 4 removed compatibility with anything below 3.5, so the
+        # configure step fails outright. CMAKE_POLICY_VERSION_MINIMUM is the
+        # escape hatch CMake 4 provides for exactly this. Pinning is no help
+        # here - the 3.1 floor is on master and has been for years.
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DBUILD_TESTS=OFF
         -DWITH_OPENMP=OFF
         -DHAVE_WORDS_BIGENDIAN_EXITCODE=1
