@@ -16,6 +16,14 @@ ExternalProject_Add(spirv-cross
         -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
         -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS=OFF
+        # Kwick (W-083): the pin above is a 2023 tree, and its CMakeLists.txt
+        # declares cmake_minimum_required(VERSION 3.0). CMake 4 removed
+        # compatibility below 3.5 and fails with
+        #   Compatibility with CMake < 3.5 has been removed from CMake.
+        #   Or, add -DCMAKE_POLICY_VERSION_MINIMUM=3.5 to try configuring anyway.
+        # This is the cost of pinning old sources, and CMake's own suggested
+        # remedy. Same fix as libsoxr.
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DSPIRV_CROSS_SHARED=ON
         -DSPIRV_CROSS_CLI=OFF
         -DSPIRV_CROSS_ENABLE_TESTS=OFF
