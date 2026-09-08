@@ -148,8 +148,20 @@ jobs:
 
       - name: Copying ffmpeg
         run: |
+          # Kwick (W-083): guarded. This recipe configures FFmpeg with
+          # --disable-programs - it is in the archived recipe and in the
+          # configure string embedded in the DLL we ship - so ffmpeg.exe is
+          # never built and 7z would be handed a path that does not exist.
+          # That matters because this step sits BEFORE the three upload steps:
+          # failing here would throw away the artifact of an otherwise
+          # successful build. We only want mpv-dev; ffmpeg.exe is a bonus.
           hash=$(git -C src_packages/ffmpeg rev-parse --short HEAD)
-          7z a -m0=lzma2 -mx=9 -ms=on release_$BIT/ffmpeg-${{ env.arch }}${{ env.x86_64_level }}-git-$hash.7z ./build_$BIT/$BIT-w64-mingw32/bin/ffmpeg.exe
+          exe=./build_$BIT/$BIT-w64-mingw32/bin/ffmpeg.exe
+          if [ -f "$exe" ]; then
+            7z a -m0=lzma2 -mx=9 -ms=on release_$BIT/ffmpeg-${{ env.arch }}${{ env.x86_64_level }}-git-$hash.7z "$exe"
+          else
+            echo "ffmpeg.exe was not built (--disable-programs) - nothing to copy."
+          fi
 
       # Kwick (W-083): print the failing package's stamp logs straight into the
       # run output. The logs.7z artifact needs 7-Zip to open, which the Windows
