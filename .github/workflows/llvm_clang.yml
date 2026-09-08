@@ -78,7 +78,12 @@ jobs:
 
       - name: Loading repository cache
         id: repository_cache
-        if: false
+        # Kwick (W-083): ENABLED. Caching clang_root makes "Building LLVM" skip,
+        # but the mingw toolchain step still needs the LLVM SOURCE tree -
+        # llvm-compiler-rt-builtin configures against
+        # src_packages/llvm/compiler-rt/lib/builtins. With the sources not
+        # cached, a cache-hit run failed with "The source directory ... does not
+        # exist". Restore the sources alongside the install.
         uses: actions/cache/restore@main
         with:
           path: src_packages
@@ -195,7 +200,11 @@ jobs:
           key: ${{ secrets.CACHE_VERSION }}-clang-aarch64_toolchain-${{ github.run_id }}
 
       - name: Saving repository cache
-        if: false
+        # Kwick (W-083): ENABLED, and on failure too - see "Loading repository
+        # cache". The package SOURCES must persist next to clang_root, or a run
+        # that skips the LLVM build has no LLVM source tree to build
+        # compiler-rt from.
+        if: always()
         uses: actions/cache/save@main
         with:
           path: src_packages
