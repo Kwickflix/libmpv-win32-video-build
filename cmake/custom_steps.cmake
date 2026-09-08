@@ -113,9 +113,22 @@ PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_
         EXCLUDE_FROM_MAIN TRUE
         INDEPENDENT TRUE
         WORKING_DIRECTORY <SOURCE_DIR>
-        COMMAND bash -c "git am --abort 2> /dev/null || true"
-        COMMAND bash -c "git fetch --filter=tree:0 --no-recurse-submodules"
-        COMMAND ${stamp_dir}/reset_head.sh
+        # Kwick (W-083): each command is guarded with `test -d .git`.
+        # These run with WORKING_DIRECTORY <SOURCE_DIR> and call git WITHOUT
+        # -C. If a package's source has not been cloned yet, that directory is
+        # not a git repository, so git walks UP and finds the workspace
+        # checkout of this very repo instead. `ninja update` runs ~77 of these
+        # at once, so they then all fetch and `reset --hard` the same parent
+        # repo concurrently and die with
+        #   fatal: Unable to create '.../.git/index.lock': File exists
+        #   ninja: build stopped: subcommand failed  (exit code 128)
+        # which is the exit-128 failure media-kit's own runs hit on
+        # 2025-12-11. Every caller of force_rebuild_git IS a git package, so a
+        # missing .git just means "not cloned yet" and skipping is correct -
+        # the download step still does its job.
+        COMMAND bash -c "test -d .git || exit 0; git am --abort 2> /dev/null || true"
+        COMMAND bash -c "test -d .git || exit 0; git fetch --filter=tree:0 --no-recurse-submodules"
+        COMMAND bash -c "test -d .git || exit 0; exec ${stamp_dir}/reset_head.sh"
     )
     ExternalProject_Add_StepTargets(${_name} force-update)
 
